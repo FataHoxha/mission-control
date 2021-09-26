@@ -41,7 +41,9 @@ def fill_table():
     input = {'name': 'authentication', 'owner': 'test_user@n26.com', 'config': 'some_file_on_aws'}
 
     # Insert Data
-    table.put_item(Item=input)
+    response = table.put_item(Item=input)
+
+    return response
 
 def list_items():
     # return all items, applications, contained in a table
@@ -92,8 +94,9 @@ def update_item(name, data:dict):
     return response
 
 def update_item_versioning(name, data:dict):
-    # Update the item that has the latest version and content
+    '''ref: https://aws.amazon.com/blogs/database/implementing-version-control-using-amazon-dynamodb/'''
 
+    # Update the item that has the latest version and content
     response = table.update_item(
         Key={
             'PK': name,
@@ -119,7 +122,7 @@ def update_item_versioning(name, data:dict):
     latest_version = response['Attributes']['Latest']
 
     # Add the new item with the latest version
-    table.put_item(
+    latest_response = table.put_item(
         Item={
             'PK': name,
             'SK': 'v' + str(latest_version),
@@ -127,6 +130,8 @@ def update_item_versioning(name, data:dict):
             'config': data['config']
         }
     )
+
+    return latest_response
 
 def delete_item(name):
     # permanently delete an item, application, from the table
