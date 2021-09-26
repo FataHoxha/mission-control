@@ -1,10 +1,15 @@
 version: "3.9"
 services:
-  dynamo:
-    container_name: local-dynamodb
+  prometheus:
+    image: prom/prometheus:v2.26.0
+    ports:
+      - "9090:9090"
+
+  dynamo-local:
+    container_name: dynamodb-local
     image: amazon/dynamodb-local
     networks:
-      - local-dynamodb
+      - dynamodb-local
     ports:
       - '8000:8000'
     volumes:
