@@ -4,10 +4,6 @@ from flask import Flask, request, Response
 app = Flask(__name__)
 
 
-
-app = Flask(__name__)
-
-
     
 @app.route('/get-applications')
 def get_items():
