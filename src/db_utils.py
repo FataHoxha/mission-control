@@ -1,6 +1,12 @@
+'''
+    ref: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GettingStarted.Python.html
+'''
+
 import boto3
 import json
+from botocore.exceptions import ClientError
 from decimal import Decimal
+
 
 
 # Create connection
@@ -10,9 +16,11 @@ dynamodb = boto3.resource('dynamodb',
                           aws_access_key_id='test_key',
                           aws_secret_access_key='test_key' )
 
-# Create the Table
-# Note: no need to define all the structure of the table, as dynamodb is noSQL.   
+
 def create_table():
+    # Create the Table
+    # Note: no need to define all the structure of the table, as dynamodb is noSQL
+
     dynamodb.create_table(
         TableName='Application',
         KeySchema=[
@@ -33,68 +41,49 @@ def create_table():
         }
     )
 
+# table created
 table = dynamodb.Table('Application')
 
+
 def fill_table():
-    with open("applicationdata.json") as json_file:
+    # fills an existing table with json data, stored in ./data/applicationdata
+
+    with open("/data/applicationdata.json") as json_file:
         application_list = json.load(json_file, parse_float=Decimal)
 
     for app in application_list:
         name = app['name']
         owner = app['owner']
-        print("Loading applications:", name , owner)
+        print("Loading applications from json:", name , owner)
         table.put_item(Item=app)
 
-def list_items():
-    # return all items, applications, contained in a table
-    response = table.get_item(
-        Key = {
-            'name'     : name
-        },
-        AttributesToGet=[
-            'name' # valid type
-        ]
-    )
 
-    return response
-
-# get specific item based on application name
 def get_item(name):
-    # return only a specific item, application
-    response = table.get_item(
-        Key = {
-            'name'     : name
-        },
-        AttributesToGet=[
-            'name' # valid type
-        ]
-    )
+    # return only a specific item, given the name 
 
-    return response
+    try:
+        response = table.get_item(
+                Key={'name': name}
+            )
+    except ClientError as e:
+        print(e.response['Error']['Message'])
+    else:
+        return response['Item']
 
 
-def update_item(name, data:dict):
+def get_items():
+    # return all items, applications, contained in a table
 
-    response = table.update_item(
-        Key = {
-            'name': name
-        },
-        AttributeUpdates={
-            'name': {
-                'Value'  : data['name'],
-                'Action' : 'PUT' # # available options -> DELETE(delete), PUT(set), ADD(increment)
-            },
-            'owner': {
-                'Value'  : data['owner'],
-                'Action' : 'PUT'
-            }
-        },
-        ReturnValues = "UPDATED_NEW"  # returns the new updated values
-    )
-    return response
+    try:
+        response = dynamodb.scan(
+                TableName='Application'
+            )
+    except ClientError as e:
+        print(e.response['Error']['Message'])
+    else:
+        return response
 
 def update_item_versioning(name, data:dict):
-    '''ref: https://aws.amazon.com/blogs/database/implementing-version-control-using-amazon-dynamodb/'''
 
     # Update the item that has the latest version and content
     response = table.update_item(
@@ -135,10 +124,13 @@ def update_item_versioning(name, data:dict):
 
 def delete_item(name):
     # permanently delete an item, application, from the table
-    response = table.delete_item(
-        Key = {
-            'name': name
-        }
-    )
-
-    return response
+    try:
+        response = table.delete_item(
+            Key = {
+                'name': name
+            }
+        )
+    except ClientError as e:
+        print(e.response['Error']['Message'])
+    else:
+        return response
