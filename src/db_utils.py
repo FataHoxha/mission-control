@@ -1,4 +1,6 @@
 import boto3
+import json
+from decimal import Decimal
 
 
 # Create connection
@@ -34,16 +36,14 @@ def create_table():
 table = dynamodb.Table('Application')
 
 def fill_table():
-    #recall existing table
-    table = dynamodb.Table('Application')
-    # create input to fillin 
-    # TODO: input from external json
-    input = {'name': 'authentication', 'owner': 'test_user@n26.com', 'config': 'some_file_on_aws'}
+    with open("applicationdata.json") as json_file:
+        application_list = json.load(json_file, parse_float=Decimal)
 
-    # Insert Data
-    response = table.put_item(Item=input)
-
-    return response
+    for app in application_list:
+        name = app['name']
+        owner = app['owner']
+        print("Loading applications:", name , owner)
+        table.put_item(Item=app)
 
 def list_items():
     # return all items, applications, contained in a table
