@@ -1,17 +1,21 @@
-from boto3 import resource
+import boto3
 
 
-# Create Client
-dynamodb = boto3.resource('dynamodb', endpoint_url='http://localhost:8000')
+# Create connection
+dynamodb = boto3.resource('dynamodb', 
+                          endpoint_url='http://localhost:8000', 
+                          region_name='eu-west-1',
+                          aws_access_key_id='test_key',
+                          aws_secret_access_key='test_key' )
 
 # Create the Table
 # Note: no need to define all the structure of the table, as dynamodb is noSQL.   
 def create_table():
-    table = dynamodb.create_table(
+    dynamodb.create_table(
         TableName='Application',
         KeySchema=[
             {
-                'AttributeName': 'name',
+                'AttributeName': 'name', # we assume that the name of the app is unique, so we can use it as id
                 'KeyType': 'HASH'  # Partition key
             }
         ],
@@ -26,35 +30,50 @@ def create_table():
             'WriteCapacityUnits': 10
         }
     )
-    return table
 
-# once the table is created, can be retrieved from the resource
-app_table = resource.Table('Application')
+table = dynamodb.Table('Application')
 
 def fill_table():
-    input = {'name': 'authentication', 'metadata': 'test_user@n26.com', 'config': 'some_file_on_aws'}
+    #recall existing table
+    table = dynamodb.Table('Application')
+    # create input to fillin 
+    # TODO: input from external json
+    input = {'name': 'authentication', 'owner': 'test_user@n26.com', 'config': 'some_file_on_aws'}
 
     # Insert Data
-    app_table.put_item(Item=input)
-    print('Successfully put item')
+    table.put_item(Item=input)
 
-# get specific item based on application name
-def get_item(name):
-
-    response = app_table.get_item(
+def list_items():
+    # return all items, applications, contained in a table
+    response = table.get_item(
         Key = {
             'name'     : name
         },
         AttributesToGet=[
-            'name' # valid types dont throw error
+            'name' # valid type
         ]
     )
 
     return response
 
+# get specific item based on application name
+def get_item(name):
+    # return only a specific item, application
+    response = table.get_item(
+        Key = {
+            'name'     : name
+        },
+        AttributesToGet=[
+            'name' # valid type
+        ]
+    )
+
+    return response
+
+
 def update_item(name, data:dict):
 
-    response = app_table.update_item(
+    response = table.update_item(
         Key = {
             'name': name
         },
@@ -63,8 +82,8 @@ def update_item(name, data:dict):
                 'Value'  : data['name'],
                 'Action' : 'PUT' # # available options -> DELETE(delete), PUT(set), ADD(increment)
             },
-            'author': {
-                'Value'  : data['author'],
+            'owner': {
+                'Value'  : data['owner'],
                 'Action' : 'PUT'
             }
         },
@@ -72,9 +91,46 @@ def update_item(name, data:dict):
     )
     return response
 
-def delete_item(name):
+def update_item_versioning(name, data:dict):
+    # Update the item that has the latest version and content
 
-    response = app_table.delete_item(
+    response = table.update_item(
+        Key={
+            'PK': name,
+            'SK': 'v0'
+        },
+        # Atomic counter -> increment the latest version
+        UpdateExpression='SET Latest = if_not_exists(Latest, :defaultval) + :incrval, #owner = :owner, #config = :config',
+        ExpressionAttributeNames={
+            '#owner': 'owner',
+            '#config': 'config'
+        },
+        ExpressionAttributeValues={
+            ':owner': data['owner'],
+            ':config': data['config'], 
+            ':defaultval': 0,
+            ':incrval': 1
+        },
+        # return attributes values after the update
+        ReturnValues='UPDATED_NEW'  
+    )
+
+    # Get the updated version
+    latest_version = response['Attributes']['Latest']
+
+    # Add the new item with the latest version
+    table.put_item(
+        Item={
+            'PK': name,
+            'SK': 'v' + str(latest_version),
+            'owner': data['owner'],
+            'config': data['config']
+        }
+    )
+
+def delete_item(name):
+    # permanently delete an item, application, from the table
+    response = table.delete_item(
         Key = {
             'name': name
         }

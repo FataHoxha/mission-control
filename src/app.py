@@ -1,31 +1,25 @@
 
 from flask import Flask, request, Response
-import db_utils as dynamodb
+import db_utils 
 
 app = Flask(__name__)
 
 
     
-@app.route('/get-applications')
-def get_items():
-    res = ("Content is {table}".format(table=get_items()))
 
-    # return result
-    return Response(res, status=200)
 
 
 @app.route('/')
 def index():
-    return Response("This is a RESTful App for Application Version control", status = 200)
+    # A new table is created when calling the index
+    db_utils.create_table()
+    db_utils.fill_table()
+    return Response("This is a RESTful API for Application Version Control", status = 200)
  
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
     # create a new table
-    dynamodb.create_table()
-
-    # fill table with some entries 
-    # TODO: add fill from external JSON
-    dynamodb.add_items()
+    
     
    
    
