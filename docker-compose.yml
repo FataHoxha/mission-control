@@ -5,17 +5,16 @@ services:
     ports:
       - "9090:9090"
 
-  dynamo-local:
+  dynamodb-local:
     container_name: dynamodb-local
     image: amazon/dynamodb-local
-    networks:
-      - dynamodb-local
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    
     ports:
-      - '8000:8000'
+      - "8000:8000"
     volumes:
-      - dynamodata:/home/dynamodblocal
+      - "./docker/dynamodb:/home/dynamodblocal/data"
     working_dir: /home/dynamodblocal
-    command: '-jar DynamoDBLocal.jar -sharedDb -dbPath .'
 
   web:
     build: .

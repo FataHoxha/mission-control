@@ -2,21 +2,32 @@
 
 ## Description
 
-The goal of this simple API is to update and display versioned changes of application informations stored into database
+The goal of this API is to provide endpoints which can be used to display versioned changes of applications stored in a dynamodb
 
 
 ## API
 
-The API includes three endpoints which with main functionalities: get all applications, get specifc app and versioning, update application
+The API includes several endpoints which cover the following functionalities: get all applications, get specifc app and versioning, update application
 
-`/get-applications`
+### setup the database and fill with data
 
-`/get-application/<app_name>`
+`/create_and_fill_table`
 
-`/update-application/<app_name`
+### Crud operations
+GET
+`/get_app/<name>` -> read a single item
+`/get_apps/` -> read all the items items in the table
 
+DELETE
+`/delete_app/<name>`
+
+UPDATE with versioning
+`/update_app/<name>`
+
+
+### metrics
 `/metrics`
-This endpoint exposes the metrics 
+This endpoint exposes the metrics to monitor the staus of the api
 
 ## Setup
 To run the API, simply run the docker container.
@@ -36,4 +47,7 @@ The Web App will be available locally at the path: `http://localhost:5000/`
 
 ## Testing
 The endpoints can be tested inside the container as follow
-TODO: add testing script + path
+```
+	docker exec -i -t mission-control_web_1 bash
+	python3 src/test_db.py
+```
